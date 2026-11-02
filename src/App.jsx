@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   ArrowUpRight, 
   MapPin, 
@@ -53,6 +54,7 @@ export default function App() {
   const [activeProjectFilter, setActiveProjectFilter] = useState('all');
   const [selectedCert, setSelectedCert] = useState(null);
   const [resumeModalOpen, setResumeModalOpen] = useState(false);
+  const [resumeViewMode, setResumeViewMode] = useState('pdf');
   const [contactFormStatus, setContactFormStatus] = useState('');
   const [contactFormData, setContactFormData] = useState({ name: '', email: '', message: '' });
 
@@ -96,6 +98,18 @@ export default function App() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Lock body scroll when any modal is open so the screen doesn't jump or scroll away
+  useEffect(() => {
+    if (resumeModalOpen || selectedCert) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [resumeModalOpen, selectedCert]);
 
   const scrollToSection = (id) => {
     setActiveSection(id);
@@ -258,7 +272,7 @@ export default function App() {
   ];
 
   return (
-    <div className="portfolio-app fade-in">
+    <div className="portfolio-app">
       {/* =========================================================
           TOP NAVIGATION BAR (Matches Jensen Omega header)
           ========================================================= */}
@@ -1194,9 +1208,9 @@ export default function App() {
       </footer>
 
       {/* =========================================================
-          CERTIFICATE LIGHTBOX MODAL
+          CERTIFICATE LIGHTBOX MODAL (Portaled to document.body)
           ========================================================= */}
-      {selectedCert && (
+      {selectedCert && createPortal(
         <div className="modal-backdrop" onClick={() => setSelectedCert(null)}>
           <div className="modal-dialog cert-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -1247,116 +1261,213 @@ export default function App() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* =========================================================
-          RESUME MODAL
+          RESUME MODAL (PDF Viewer & Quick Overview - Portaled to document.body)
           ========================================================= */}
-      {resumeModalOpen && (
+      {resumeModalOpen && createPortal(
         <div className="modal-backdrop" onClick={() => setResumeModalOpen(false)}>
           <div className="modal-dialog resume-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+            <div className="modal-header resume-modal-header">
               <div>
                 <h3 className="modal-title">Nandan Manjunath Naik — Resume</h3>
-                <p className="modal-subtitle">Software Developer · Backend & Microservices</p>
+                <p className="modal-subtitle">Computer Science & Business Systems · Software Developer</p>
               </div>
-              <button 
-                type="button" 
-                className="modal-close-btn"
-                onClick={() => setResumeModalOpen(false)}
-                aria-label="Close resume modal"
+              <div className="resume-modal-header-actions">
+                <a
+                  href="/Nandan_Manjunath_Naik_Resume.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary resume-action-btn"
+                  title="Open resume in new tab"
+                >
+                  <ExternalLink size={13} />
+                  <span>Open in Tab</span>
+                </a>
+                <a
+                  href="/Nandan_Manjunath_Naik_Resume.pdf"
+                  download="Nandan_Manjunath_Naik_Resume.pdf"
+                  className="btn-primary resume-action-btn"
+                  title="Download resume PDF"
+                >
+                  <Download size={13} />
+                  <span>Download PDF</span>
+                </a>
+                <button 
+                  type="button" 
+                  className="modal-close-btn"
+                  onClick={() => setResumeModalOpen(false)}
+                  aria-label="Close resume modal"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* View Mode Switcher */}
+            <div className="resume-tabs-bar">
+              <button
+                type="button"
+                className={`resume-tab-btn ${resumeViewMode === 'pdf' ? 'active' : ''}`}
+                onClick={() => setResumeViewMode('pdf')}
               >
-                <X size={20} />
+                <FileText size={14} />
+                <span>PDF Document</span>
+              </button>
+              <button
+                type="button"
+                className={`resume-tab-btn ${resumeViewMode === 'text' ? 'active' : ''}`}
+                onClick={() => setResumeViewMode('text')}
+              >
+                <Eye size={14} />
+                <span>Quick Overview</span>
               </button>
             </div>
 
             <div className="modal-body resume-modal-body">
-              {/* Resume summary */}
-              <div className="resume-section-block">
-                <h4 className="resume-block-title">Summary</h4>
-                <p className="resume-block-text">
-                  Computer Science & Business Systems engineering student at PESCE Mandya (CGPA: 8.33/10, graduating 2027). Built and shipped production RESTful APIs and microservices using Python (FastAPI/Pydantic), SQL, Docker, and AWS across two engineering internships. Author of a peer-reviewed research paper on a graph- and algorithm-driven Swiss-system pairing engine (Scopus Indexed, AITC-2026).
-                </p>
-              </div>
-
-              {/* Education */}
-              <div className="resume-section-block">
-                <h4 className="resume-block-title">Education</h4>
-                <div className="resume-item">
-                  <div className="resume-item-top">
-                    <strong>PES College of Engineering, Mandya</strong>
-                    <span className="resume-date">2023 – 2027</span>
+              {resumeViewMode === 'pdf' ? (
+                <div className="resume-pdf-container">
+                  <object
+                    data="/Nandan_Manjunath_Naik_Resume.pdf"
+                    type="application/pdf"
+                    className="resume-pdf-frame"
+                  >
+                    <iframe
+                      src="/Nandan_Manjunath_Naik_Resume.pdf#view=FitH"
+                      title="Nandan Manjunath Naik Resume"
+                      className="resume-pdf-frame"
+                    >
+                      <div className="resume-pdf-fallback">
+                        <FileText size={48} className="resume-fallback-icon" />
+                        <h4>Preview not available directly in this browser</h4>
+                        <p>You can open the PDF resume in a new tab or download it directly:</p>
+                        <div className="resume-fallback-actions">
+                          <a 
+                            href="/Nandan_Manjunath_Naik_Resume.pdf" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="btn-primary"
+                          >
+                            <ExternalLink size={15} />
+                            <span>Open Resume (PDF)</span>
+                          </a>
+                          <a 
+                            href="/Nandan_Manjunath_Naik_Resume.pdf" 
+                            download="Nandan_Manjunath_Naik_Resume.pdf" 
+                            className="btn-secondary"
+                          >
+                            <Download size={15} />
+                            <span>Download PDF</span>
+                          </a>
+                        </div>
+                      </div>
+                    </iframe>
+                  </object>
+                </div>
+              ) : (
+                <div className="resume-text-view">
+                  {/* Resume summary */}
+                  <div className="resume-section-block">
+                    <h4 className="resume-block-title">Summary</h4>
+                    <p className="resume-block-text">
+                      Computer Science & Business Systems engineering student at PESCE Mandya (CGPA: 8.33/10, graduating 2027). Built and shipped production RESTful APIs and microservices using Python (FastAPI/Pydantic), SQL, Docker, and AWS across two engineering internships. Author of a peer-reviewed research paper on a graph- and algorithm-driven Swiss-system pairing engine (Scopus Indexed, AITC-2026).
+                    </p>
                   </div>
-                  <div className="resume-item-sub">B.E. Computer Science & Business Systems · Current CGPA: 8.33 / 10</div>
-                </div>
-              </div>
 
-              {/* Experience */}
-              <div className="resume-section-block">
-                <h4 className="resume-block-title">Work Experience</h4>
-                <div className="resume-item">
-                  <div className="resume-item-top">
-                    <strong>Talenciaglobal — Software Engineering Intern</strong>
-                    <span className="resume-date">Apr 2026 – May 2026</span>
+                  {/* Education */}
+                  <div className="resume-section-block">
+                    <h4 className="resume-block-title">Education</h4>
+                    <div className="resume-item">
+                      <div className="resume-item-top">
+                        <strong>PES College of Engineering, Mandya</strong>
+                        <span className="resume-date">2023 – 2027</span>
+                      </div>
+                      <div className="resume-item-sub">B.E. Computer Science & Business Systems · Current CGPA: 8.33 / 10</div>
+                    </div>
                   </div>
-                  <ul className="resume-bullets">
-                    <li>Developed production RESTful APIs using FastAPI, Pydantic, Python, and SQL.</li>
-                    <li>Integrated microservices with Docker containerization and LangChain workflows.</li>
-                  </ul>
-                </div>
 
-                <div className="resume-item" style={{ marginTop: '12px' }}>
-                  <div className="resume-item-top">
-                    <strong>Employability.life — Cybersecurity & AWS Intern</strong>
-                    <span className="resume-date">Aug 2025 – Sep 2025</span>
+                  {/* Experience */}
+                  <div className="resume-section-block">
+                    <h4 className="resume-block-title">Work Experience</h4>
+                    <div className="resume-item">
+                      <div className="resume-item-top">
+                        <strong>Talenciaglobal — Software Engineering Intern</strong>
+                        <span className="resume-date">Apr 2026 – May 2026</span>
+                      </div>
+                      <ul className="resume-bullets">
+                        <li>Developed production RESTful APIs using FastAPI, Pydantic, Python, and SQL.</li>
+                        <li>Integrated microservices with Docker containerization and LangChain workflows.</li>
+                      </ul>
+                    </div>
+
+                    <div className="resume-item" style={{ marginTop: '12px' }}>
+                      <div className="resume-item-top">
+                        <strong>Employability.life — Cybersecurity & AWS Intern</strong>
+                        <span className="resume-date">Aug 2025 – Sep 2025</span>
+                      </div>
+                      <ul className="resume-bullets">
+                        <li>Deployed and monitored scalable cloud infrastructure on AWS (EC2, S3) with strict IAM roles.</li>
+                      </ul>
+                    </div>
                   </div>
-                  <ul className="resume-bullets">
-                    <li>Deployed and monitored scalable cloud infrastructure on AWS (EC2, S3) with strict IAM roles.</li>
-                  </ul>
-                </div>
-              </div>
 
-              {/* Key Skills */}
-              <div className="resume-section-block">
-                <h4 className="resume-block-title">Technical Skills</h4>
-                <div className="resume-skills-group">
-                  <strong>Languages & Frameworks:</strong> Python, C++, C, JavaScript, React.js, FastAPI, Node.js, Express.js
+                  {/* Key Skills */}
+                  <div className="resume-section-block">
+                    <h4 className="resume-block-title">Technical Skills</h4>
+                    <div className="resume-skills-group">
+                      <strong>Languages & Frameworks:</strong> Python, C++, C, JavaScript, React.js, FastAPI, Node.js, Express.js
+                    </div>
+                    <div className="resume-skills-group" style={{ marginTop: '4px' }}>
+                      <strong>Cloud & Databases:</strong> AWS (EC2, S3), Docker, PostgreSQL, MySQL, Supabase, Git
+                    </div>
+                  </div>
                 </div>
-                <div className="resume-skills-group" style={{ marginTop: '4px' }}>
-                  <strong>Cloud & Databases:</strong> AWS (EC2, S3), Docker, PostgreSQL, MySQL, Supabase, Git
-                </div>
-              </div>
+              )}
             </div>
 
             <div className="modal-footer">
               <a 
-                href="mailto:nnaik5253@gmail.com?subject=Requesting%20PDF%20Resume&body=Hi%20Nandan,%20I%20would%20like%20to%20request%20your%20PDF%20resume."
+                href="/Nandan_Manjunath_Naik_Resume.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary"
+              >
+                <ExternalLink size={14} />
+                <span>Open Full Page</span>
+              </a>
+
+              <a 
+                href="/Nandan_Manjunath_Naik_Resume.pdf"
+                download="Nandan_Manjunath_Naik_Resume.pdf"
                 className="btn-primary"
               >
-                <Mail size={14} />
-                <span>Request Custom PDF via Email</span>
+                <Download size={14} />
+                <span>Download Resume (PDF)</span>
               </a>
 
               <button 
                 type="button" 
                 className="btn-secondary"
-                onClick={() => window.print()}
+                onClick={() => setResumeModalOpen(false)}
               >
-                <Download size={14} />
-                <span>Print / Save as PDF</span>
+                <span>Close</span>
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Floating Toast Notification */}
-      {copied && (
+      {/* Floating Toast Notification (Portaled to document.body) */}
+      {copied && createPortal(
         <div className="toast-notification" role="status" aria-live="polite">
           <Check size={16} />
           <span>Email copied to clipboard (nnaik5253@gmail.com)</span>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
